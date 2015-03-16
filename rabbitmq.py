@@ -1,11 +1,12 @@
 """
-python plugin for collectd to obtain rabbitmq stats
+Python plugin for collectd to obtain rabbitmq stats.
 """
 import collectd
 import urllib2
 import urllib
 import json
 import re
+
 
 RABBIT_API_URL = "http://{host}:{port}/api/"
 
@@ -31,9 +32,9 @@ PLUGIN_CONFIG = {
 
 
 def configure(config_values):
-    '''
-    Load information from configuration file
-    '''
+    """
+    Load information from configuration file.
+    """
 
     global PLUGIN_CONFIG
     collectd.info('Configuring RabbitMQ Plugin')
@@ -60,16 +61,16 @@ def configure(config_values):
 
 
 def init():
-    '''
-    Initalize connection to rabbitmq
-    '''
+    """
+    Initalize connection to rabbitmq.
+    """
     collectd.info('Initalizing RabbitMQ Plugin')
 
 
 def get_info(url):
-    '''
-    return json object from url
-    '''
+    """
+    Return json object from url.
+    """
 
     try:
         info = urllib2.urlopen(url)
@@ -84,8 +85,8 @@ def get_info(url):
 
 def dispatch_values(values, host, plugin, plugin_instance, metric_type,
                     type_instance=None):
-    '''
-    dispatch metrics to collectd
+    """
+    Dispatch metrics to collectd.
     Args:
       values (tuple): the values to dispatch
       host: (str): the name of the vhost
@@ -93,7 +94,7 @@ def dispatch_values(values, host, plugin, plugin_instance, metric_type,
       plugin_instance (str): the queue/exchange name
       metric_type: (str): the name of metric
       type_instance: Optional
-    '''
+    """
 
     collectd.debug("Dispatching %s %s %s %s %s\n\t%s " % (host, plugin,
                    plugin_instance, metric_type, type_instance, values))
@@ -125,9 +126,9 @@ def dispatch_message_stats(data, vhost, plugin, plugin_instance):
 
 
 def dispatch_queue_metrics(queue, vhost):
-    '''
-    Dispatches queue metrics for queue in vhost
-    '''
+    """
+    Dispatches queue metrics for queue in vhost.
+    """
 
     vhost_name = 'rabbitmq_%s' % (vhost['name'].replace('/', 'default'))
     for name in QUEUE_STATS:
@@ -154,9 +155,10 @@ def dispatch_queue_metrics(queue, vhost):
 
 
 def dispatch_exchange_metrics(exchange, vhost):
-    '''
-    Dispatches exchange metrics for exchange in vhost
-    '''
+    """
+    Dispatches exchange metrics for exchange in vhost.
+    """
+
     vhost_name = 'rabbitmq_%s' % vhost['name'].replace('/', 'default')
     dispatch_message_stats(exchange.get('message_stats', None), vhost_name,
                            'exchanges', exchange['name'])
@@ -164,7 +166,7 @@ def dispatch_exchange_metrics(exchange, vhost):
 
 def dispatch_node_metrics(node):
     '''
-    Dispatches node metrics
+    Dispatches node metrics.
     '''
 
     for name in NODE_STATS:
@@ -186,9 +188,9 @@ def want_to_ignore(type_rmq, name):
 
 
 def read(input_data=None):
-    '''
-    reads all metrics from rabbitmq
-    '''
+    """
+    Reads all metrics from rabbitmq.
+    """
 
     collectd.debug("Reading data with input = %s" % (input_data))
     base_url = RABBIT_API_URL.format(host=PLUGIN_CONFIG['host'],
@@ -202,12 +204,11 @@ def read(input_data=None):
     opener = urllib2.build_opener(auth_handler)
     urllib2.install_opener(opener)
 
-    #First get all the nodes
+    # First get all the nodes
     for node in get_info("%s/nodes" % (base_url)):
         dispatch_node_metrics(node)
 
-    #Then get all vhost
-
+    # Then get all vhost
     for vhost in get_info("%s/vhosts" % (base_url)):
 
         vhost_name = urllib.quote(vhost['name'], '')
@@ -224,7 +225,7 @@ def read(input_data=None):
                     dispatch_queue_metrics(queue_data, vhost)
                 else:
                     collectd.warning("Cannot get data back from %s/%s queue" %
-                                    (vhost_name, queue_name))
+                                     (vhost_name, queue_name))
 
         for exchange in get_info("%s/exchanges/%s" % (base_url,
                                  vhost_name)):
@@ -237,15 +238,16 @@ def read(input_data=None):
 
 
 def shutdown():
-    '''
-    Shutdown connection to rabbitmq
-    '''
+    """
+    Shutdown connection to rabbitmq.
+    """
 
     collectd.info('RabbitMQ plugin shutting down')
+
 
 # Register callbacks
 collectd.register_config(configure)
 collectd.register_init(init)
 collectd.register_read(read)
-#collectd.register_write(write)
+# collectd.register_write(write)
 collectd.register_shutdown(shutdown)
